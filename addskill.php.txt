@@ -1,0 +1,72 @@
+<?php
+  //adds a skill list to the data base to be associated with a veteran
+  //receives the length of the list, the list itself, and the user id associated with the list
+  //returns a json array confirming entry of at least one skill
+
+require_once("connect_safer.php");
+$dbh = ConnectDB();
+
+
+    try{
+      class Skills {
+          public $id;
+
+          public function __construct($uid)
+          {
+              $this->id        = $uid;
+          }
+      }
+      $id =      $_POST["id"];
+      $numskills = $_POST["numskills"];
+      $month = "0";
+      //loop through all sills in the list
+      for($i = 0; $i < $numskills; $i++){
+        $query = "DELETE FROM vetskills WHERE userid = :id AND skill = :s;";
+
+        $stmt = $dbh->prepare($query);
+        //build a string to catch each skill in the list.  skills are labeled 'skill1' 'skill2' etc
+        $key = "skill" . $i;
+        $skill =   $_POST[$key];
+        $stmt->bindParam('id', $id);
+        $stmt->bindParam('s',  $skill);
+
+        $stmt->execute();
+        //add the skill
+        $query = "INSERT INTO vetskills ".
+                "(userid, skill, months) ".
+                "VALUES (:i,:s,:m);";
+
+        $stmt = $dbh->prepare($query);
+        $stmt->bindParam('i',  $id);
+        $stmt->bindParam('s',  $skill);
+        $stmt->bindParam('m',  $month);
+
+        $stmt->execute();
+      }//end for loop
+      //retreive skills added
+      $query = "SELECT * FROM vetskills WHERE userid = :id";
+
+      $stmt = $dbh->prepare($query);
+      $stmt->bindParam('id', $id);
+      $stmt->execute();
+      
+      $skills = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+      $howmany = count($skills);
+      if ($howmany > 0){
+        foreach ($skills as $g_info) {
+           // Retrieve contents of each row and convert to php object
+           $skillList[] = new Skills($g_info->userid);
+        }
+      }
+      convert php object array to json array and return
+      echo json_encode($skillList);
+
+
+    } catch(PDOException $e) {
+        die ('PDO error in ListMatchingPhones(): ' . $e->getMessage() );
+    }
+
+?>
+
+

@@ -1,0 +1,55 @@
+<?php
+  //allows a user to log in via http post.  
+  //Post parameters are username and password.
+  //returns a json object containing the userID and role 'veteran' or 'employer'
+
+  require_once("connect_safer.php");
+  $dbh = ConnectDB();
+  
+  //class containing mysql data to be converted to json
+  class User {
+     public $id;
+     public $role;
+
+    public function __construct($id, $role)
+    {
+      $this->id          = $id;
+      $this->role        = $role;
+    }
+  }
+  try{
+    //sql request returns a row where username = $username and password = $password
+    
+    $query = "SELECT * FROM verify WHERE Username = :un AND Password = :ps";
+    $stmt = $dbh->prepare($query);
+    $username = $_POST["username"];
+    $password = $_POST["password"];
+    $stmt->bindParam('un', $username);
+    $stmt->bindParam('ps', $password);
+    $stmt->execute();
+
+    $userdata = $stmt->fetchAll(PDO::FETCH_OBJ);
+    $howmany = count($userdata);
+
+
+
+  // should read one row but we catch them all, in case.
+    if ($howmany > 0){
+       foreach ($userdata as $g_info) {
+        // Retrieve contents of each row
+        //$userList should only contain one row.
+        //convert row to to object
+        $userList[] = new User($g_info->id,
+                               $g_info->Role);
+       }
+    }
+
+      //convert php object to json and return json object
+      echo json_encode($userList);
+
+  }
+catch(PDOException $e) {
+        die ('PDO error in ListMatchingPhones(): ' . $e->getMessage() );
+}
+
+?>
